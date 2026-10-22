@@ -1,24 +1,34 @@
 "use client"
 
+import { useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useResto } from "@/components/Resto"
 import { ROLES } from "@/lib/format"
 
+const G = ["proprietaire", "gerant"]
 const ONGLETS = [
-  { href: "/caisse", label: "Caisse", gestion: false },
-  { href: "/ventes", label: "Ventes", gestion: false },
-  { href: "/depenses", label: "Dépenses", gestion: false },
-  { href: "/stock", label: "Stock", gestion: false },
-  { href: "/tableau-de-bord", label: "Tableau de bord", gestion: true },
-  { href: "/menu", label: "Menu & prix", gestion: true },
-  { href: "/equipe", label: "Équipe", gestion: true },
+  { href: "/caisse", label: "Caisse", roles: [...G, "caissier"] },
+  { href: "/cuisine", label: "Cuisine", roles: [...G, "cuisine"] },
+  { href: "/ventes", label: "Ventes", roles: [...G, "caissier"] },
+  { href: "/depenses", label: "Dépenses", roles: [...G, "caissier"] },
+  { href: "/stock", label: "Stock", roles: [...G, "caissier", "cuisine"] },
+  { href: "/tableau-de-bord", label: "Tableau de bord", roles: G },
+  { href: "/menu", label: "Menu & prix", roles: G },
+  { href: "/equipe", label: "Équipe", roles: G },
 ]
 
 export function Shell({ restaurants, children }: { restaurants: { id: string; nom: string }[]; children: React.ReactNode }) {
-  const { resto, role, peutGerer, supabase } = useResto()
+  const { resto, role, supabase } = useResto()
   const path = usePathname()
   const router = useRouter()
+  const onglets = ONGLETS.filter((o) => o.roles.includes(role))
+  const autorise = onglets.some((o) => path.startsWith(o.href))
+
+  // Chaque rôle arrive sur son premier onglet autorisé (la cuisine sur « Cuisine »).
+  useEffect(() => {
+    if (!autorise && onglets[0]) router.replace(onglets[0].href)
+  }, [autorise, onglets, router])
 
   function changer(id: string) {
     document.cookie = `resto=${id}; path=/; max-age=31536000; samesite=lax`
@@ -51,13 +61,13 @@ export function Shell({ restaurants, children }: { restaurants: { id: string; no
             </div>
           </div>
           <nav className="tabs" aria-label="Sections">
-            {ONGLETS.filter((o) => peutGerer || !o.gestion).map((o) => (
+            {onglets.map((o) => (
               <Link key={o.href} href={o.href} aria-current={path.startsWith(o.href) ? "page" : undefined}>{o.label}</Link>
             ))}
           </nav>
         </div>
       </header>
-      <main className="wrap">{children}</main>
+      <main className="wrap">{autorise ? children : <div className="empty">Ouverture…</div>}</main>
     </>
   )
 }

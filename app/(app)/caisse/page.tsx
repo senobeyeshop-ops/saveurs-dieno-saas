@@ -6,7 +6,7 @@ import { useResto } from "@/components/Resto"
 import { Dialog } from "@/components/Dialog"
 import { Recu, type RecuData } from "@/components/Recu"
 import type { Article, Ingredient, Recette } from "@/lib/database.types"
-import { CATEGORIES, MODES, fcfa, lireNombre, messageErreur, type Mode } from "@/lib/format"
+import { CATEGORIES, MODES, fcfa, lienWhatsApp, lireNombre, messageErreur, texteRecuWhatsApp, type Mode } from "@/lib/format"
 
 type Ligne = { article: Article; q: number; pu: number }
 const classeMode = (m: string) => (m === "Wave" ? "m-wave" : m === "Orange Money" ? "m-om" : "m-especes")
@@ -23,7 +23,8 @@ export default function Caisse() {
   const [busy, setBusy] = useState(false)
   const [variable, setVariable] = useState<Article | null>(null)
   const [prixLibre, setPrixLibre] = useState("")
-  const [ticket, setTicket] = useState<RecuData | null>(null)
+  const [ticket, setTicket] = useState<(RecuData & { jeton: string; telephone: string }) | null>(null)
+  const [telephone, setTelephone] = useState("")
 
   const charger = useCallback(async () => {
     const [a, r, i] = await Promise.all([
@@ -76,6 +77,7 @@ export default function Caisse() {
     const lignes = panier.map((l) => ({ article_id: l.article.id, quantite: l.q, prix_unitaire: l.pu }))
     const { data, error } = await supabase.rpc("encaisser", {
       p_restaurant: resto.id, p_mode: mode, p_recu: mode === "Espèces" ? Math.round(recuN) : 0, p_lignes: lignes,
+      p_telephone: telephone.trim() || null,
     })
     setBusy(false)
     if (error || !data?.[0]) { toast(messageErreur(error)); return }
@@ -84,8 +86,9 @@ export default function Caisse() {
       numero: v.numero, date: new Date().toISOString(), mode, total: v.total,
       recu: mode === "Espèces" && recuN > 0 ? recuN : null,
       lignes: panier.map((l) => ({ nom: l.article.nom, quantite: l.q, prix_unitaire: l.pu })),
+      statut: "en_attente", jeton: v.jeton, telephone: telephone.trim(),
     })
-    setPanier([]); setRecu("")
+    setPanier([]); setRecu(""); setTelephone("")
     charger()
   }
 
@@ -164,8 +167,11 @@ export default function Caisse() {
               </div>
             </div>
           )}
+          <label className="f">Téléphone du client (pour le reçu WhatsApp)
+            <input id="telClient" type="tel" inputMode="tel" placeholder="ex. 77 123 45 67 (facultatif)" value={telephone} onChange={(e) => setTelephone(e.target.value)} />
+          </label>
           <div className="row">
-            <button className="btn ghost" disabled={!panier.length} onClick={() => { setPanier([]); setRecu("") }}>Vider</button>
+            <button className="btn ghost" disabled={!panier.length} onClick={() => { setPanier([]); setRecu(""); setTelephone("") }}>Vider</button>
             <button className="btn primary big" style={{ flex: 1 }} disabled={!panier.length || busy} onClick={encaisser}>
               {busy ? "Enregistrement…" : `Encaisser ${fcfa(total)}`}
             </button>
@@ -206,6 +212,12 @@ export default function Caisse() {
         <Dialog label="Vente enregistrée" onClose={() => setTicket(null)}>
           <h2>Vente enregistrée</h2>
           <Recu resto={resto} data={ticket} />
+          {ticket.telephone && (
+            <a className="btn wa big" target="_blank" rel="noopener noreferrer"
+              href={lienWhatsApp(ticket.telephone, texteRecuWhatsApp(resto, ticket, window.location.origin))}>
+              Envoyer le reçu par WhatsApp
+            </a>
+          )}
           <button className="btn primary big" onClick={() => setTicket(null)}>Nouvelle commande</button>
         </Dialog>
       )}

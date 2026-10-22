@@ -3,7 +3,27 @@ export const MODES = ["Espèces", "Wave", "Orange Money"] as const
 export type Mode = (typeof MODES)[number]
 export const DEP_CATS = ["Matières premières", "Emballages", "Gaz", "Électricité / eau", "Salaires", "Loyer", "Transport", "Entretien", "Autre"]
 export const UNITES = ["pièce", "kg", "litre", "paquet", "plateau", "sachet", "bouteille", "pot"]
-export const ROLES: Record<string, string> = { proprietaire: "Propriétaire", gerant: "Gérant", caissier: "Caissier" }
+export const ROLES: Record<string, string> = { proprietaire: "Propriétaire", gerant: "Gérant", caissier: "Caissier", cuisine: "Cuisine" }
+export const STATUTS: Record<string, string> = { en_attente: "En attente", livre: "Livré", annule: "Annulé" }
+
+/** Lien WhatsApp vers le numéro du client (numéros sénégalais à 9 chiffres complétés par 221). */
+export const lienWhatsApp = (telephone: string | null | undefined, texte: string) => {
+  let n = String(telephone ?? "").replace(/\D/g, "")
+  if (n.startsWith("00")) n = n.slice(2)
+  if (n.length === 9) n = "221" + n
+  return `https://wa.me/${n}?text=${encodeURIComponent(texte)}`
+}
+
+/** Message de reçu envoyé par WhatsApp, avec le lien de suivi de la commande. */
+export const texteRecuWhatsApp = (r: { nom: string }, v: { numero: number; total: number; mode: string; jeton: string; lignes: { nom: string; quantite: number }[] }, origine: string) =>
+  [
+    `${r.nom} — Reçu du ticket n° ${String(v.numero).padStart(3, "0")}`,
+    ...v.lignes.map((l) => `${l.quantite} × ${l.nom}`),
+    `Total : ${fcfa(v.total)} (${v.mode})`,
+    "",
+    `Suivez votre commande et gardez votre reçu : ${origine}/r/${v.jeton}`,
+    "Merci et à bientôt !",
+  ].join("\n")
 
 export const MODELE_STOCK: [string, string, number][] = [
   ["Pain baguette", "pièce", 30], ["Pain burger", "pièce", 20], ["Pain tacos (tortilla)", "pièce", 15],

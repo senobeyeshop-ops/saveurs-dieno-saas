@@ -162,3 +162,17 @@ tr.cancel td { color: var(--muted); text-decoration: line-through }
   .mobilebar .btn { margin-left: auto }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+
+/* Statut des commandes, WhatsApp et écran Cuisine */
+.btn.wa { background: #1fa855; border-color: #1fa855; color: #fff }
+.pill.s-en_attente { color: var(--warn) } .pill.s-livre { color: var(--ok) } .pill.s-annule { color: var(--bad) }
+.queue { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px }
+.cmd { display: flex; flex-direction: column; gap: 10px; border-left: 6px solid var(--warn) }
+.cmd.late { border-left-color: var(--bad) }
+.cmd .num { font-family: var(--display); font-size: 2rem; font-weight: 800; line-height: 1 }
+.cmd ul { margin: 0; padding-left: 18px; font-size: 1.1rem; font-weight: 600 }
+.cmd .flag { color: var(--bad); font-weight: 600 }
+.public { min-height: 100dvh; display: grid; place-items: start center; padding: 24px 16px; background: var(--night) }
+.public .card { background: var(--surface); border-radius: 18px; padding: 20px; width: min(420px, 100%); display: flex; flex-direction: column; gap: 14px }
+.etat { text-align: center; border-radius: 12px; padding: 12px; font-weight: 700; font-size: 1.1rem; border: 2px solid currentColor }
+.etat.s-en_attente { color: var(--warn) } .etat.s-livre { color: var(--ok) } .etat.s-annule { color: var(--bad) }

@@ -56,7 +56,7 @@ export type Database = {
         Relationships: [{ foreignKeyName: "vente_lignes_vente_id_fkey"; columns: ["vente_id"]; isOneToOne: false; referencedRelation: "ventes"; referencedColumns: ["id"] }]
       }
       ventes: {
-        Row: { annulee: boolean; annulee_par: string | null; caissier_id: string | null; created_at: string; id: string; jour: string; mode_paiement: string; montant_recu: number | null; numero: number; restaurant_id: string; total: number }
+        Row: { annulee: boolean; annulee_par: string | null; caissier_id: string | null; created_at: string; id: string; jeton: string; jour: string; livre_at: string | null; livre_par: string | null; mode_paiement: string; montant_recu: number | null; numero: number; probleme: string | null; probleme_at: string | null; probleme_par: string | null; restaurant_id: string; statut: string; telephone_client: string | null; total: number }
         Insert: { annulee?: boolean; annulee_par?: string | null; caissier_id?: string | null; created_at?: string; id?: string; jour?: string; mode_paiement: string; montant_recu?: number | null; numero: number; restaurant_id: string; total: number }
         Update: { annulee?: boolean; annulee_par?: string | null; caissier_id?: string | null; created_at?: string; id?: string; jour?: string; mode_paiement?: string; montant_recu?: number | null; numero?: number; restaurant_id?: string; total?: number }
         Relationships: Rel[]
@@ -70,7 +70,10 @@ export type Database = {
     Functions: {
       annuler_vente: { Args: { p_vente: string }; Returns: undefined }
       creer_restaurant: { Args: { p_adresse?: string; p_nom: string; p_telephone?: string }; Returns: string }
-      encaisser: { Args: { p_lignes: Json; p_mode: string; p_recu: number; p_restaurant: string }; Returns: { numero: number; total: number; vente_id: string }[] }
+      encaisser: { Args: { p_lignes: Json; p_mode: string; p_recu: number; p_restaurant: string; p_telephone?: string | null }; Returns: { jeton: string; numero: number; total: number; vente_id: string }[] }
+      marquer_livre: { Args: { p_vente: string }; Returns: undefined }
+      recu_public: { Args: { p_jeton: string }; Returns: Json }
+      signaler_probleme: { Args: { p_note: string; p_vente: string }; Returns: undefined }
       mouvement_stock: { Args: { p_cout?: number; p_en_depense?: boolean; p_ingredient: string; p_mode?: string; p_note?: string; p_quantite: number; p_type: string }; Returns: undefined }
       debloquer_compte: { Args: { p_email: string; p_restaurant: string }; Returns: undefined }
       rejoindre_restaurant: { Args: { p_code: string }; Returns: string | null }

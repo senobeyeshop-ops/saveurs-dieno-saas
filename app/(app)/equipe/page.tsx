@@ -54,7 +54,8 @@ export default function Equipe() {
         <h3>Inviter un caissier</h3>
         <p>Le caissier crée son compte sur cette application, puis saisit ce code sur l&apos;écran de bienvenue.</p>
         <div className="row"><span className="code">{resto.code_invitation}</span><button className="btn" onClick={copier}>Copier</button></div>
-        <p className="muted">Un caissier encaisse, consulte les ventes, saisit des dépenses et des achats de stock. Il ne peut ni annuler un ticket, ni changer les prix, ni voir le tableau de bord.</p>
+        <p className="muted">Un caissier encaisse, voit ses propres ventes, saisit des dépenses et des achats de stock. Il ne peut ni annuler un ticket, ni changer les prix, ni voir le tableau de bord.</p>
+        <p className="muted">Pour la cuisine : la personne rejoint avec ce même code, puis vous changez son rôle en « Cuisine » ci-dessous. Elle voit alors uniquement les commandes en attente et le stock, et marque les commandes livrées.</p>
       </div>
       {membres === null ? <div className="empty">Chargement…</div> : (
         <div className="tbl">
@@ -67,7 +68,7 @@ export default function Equipe() {
                   <td>
                     {proprio && m.user_id !== userId ? (
                       <select aria-label="Rôle" value={m.role} onChange={(e) => changerRole(m, e.target.value)} style={{ width: "auto" }}>
-                        <option value="gerant">Gérant</option><option value="caissier">Caissier</option>
+                        <option value="gerant">Gérant</option><option value="caissier">Caissier</option><option value="cuisine">Cuisine</option>
                       </select>
                     ) : ROLES[m.role]}
                   </td>

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 
 type Ctx = {
   resto: Restaurant
-  role: "proprietaire" | "gerant" | "caissier"
+  role: "proprietaire" | "gerant" | "caissier" | "cuisine"
   userId: string
   peutGerer: boolean
   toast: (m: string) => void
@@ -22,8 +22,8 @@ export function RestoProvider({ resto, role, userId, children }: { resto: Restau
     setMsg(m)
     window.setTimeout(() => setMsg((cur) => (cur === m ? null : cur)), 2800)
   }, [])
-  const r = (["proprietaire", "gerant", "caissier"].includes(role) ? role : "caissier") as Ctx["role"]
-  const value = useMemo(() => ({ resto, role: r, userId, peutGerer: r !== "caissier", toast, supabase }), [resto, r, userId, toast, supabase])
+  const r = (["proprietaire", "gerant", "caissier", "cuisine"].includes(role) ? role : "caissier") as Ctx["role"]
+  const value = useMemo(() => ({ resto, role: r, userId, peutGerer: r === "proprietaire" || r === "gerant", toast, supabase }), [resto, r, userId, toast, supabase])
   return (
     <RestoCtx.Provider value={value}>
       {children}

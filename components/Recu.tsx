@@ -1,5 +1,5 @@
 import type { Restaurant } from "@/lib/database.types"
-import { fcfa } from "@/lib/format"
+import { STATUTS, fcfa } from "@/lib/format"
 
 export type RecuData = {
   numero: number
@@ -8,10 +8,11 @@ export type RecuData = {
   total: number
   recu: number | null
   annulee?: boolean
+  statut?: string
   lignes: { nom: string; quantite: number; prix_unitaire: number }[]
 }
 
-export function Recu({ resto, data }: { resto: Restaurant; data: RecuData }) {
+export function Recu({ resto, data }: { resto: Pick<Restaurant, "nom" | "adresse" | "telephone">; data: RecuData }) {
   const d = new Date(data.date)
   return (
     <div className="receipt">
@@ -38,7 +39,9 @@ export function Recu({ resto, data }: { resto: Restaurant; data: RecuData }) {
           <div className="r"><span>Rendu</span><span>{fcfa(data.recu - data.total)}</span></div>
         </>
       ) : null}
-      {data.annulee && <><hr /><div className="c"><b>TICKET ANNULÉ</b></div></>}
+      {data.annulee || data.statut === "annule"
+        ? <><hr /><div className="c"><b>TICKET ANNULÉ</b></div></>
+        : data.statut && <><hr /><div className="c">Commande : <b>{(STATUTS[data.statut] ?? data.statut).toUpperCase()}</b></div></>}
       <hr />
       <div className="c">Merci et à bientôt !</div>
     </div>
