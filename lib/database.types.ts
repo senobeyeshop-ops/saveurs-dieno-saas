@@ -73,6 +73,7 @@ export type Database = {
       encaisser: { Args: { p_lignes: Json; p_mode: string; p_recu: number; p_restaurant: string; p_telephone?: string | null }; Returns: { jeton: string; numero: number; total: number; vente_id: string }[] }
       marquer_livre: { Args: { p_vente: string }; Returns: undefined }
       recu_public: { Args: { p_jeton: string }; Returns: Json }
+      reinitialiser_ventes: { Args: { p_confirmation: string; p_remettre_stock?: boolean; p_restaurant: string }; Returns: number }
       signaler_probleme: { Args: { p_note: string; p_vente: string }; Returns: undefined }
       mouvement_stock: { Args: { p_cout?: number; p_en_depense?: boolean; p_ingredient: string; p_mode?: string; p_note?: string; p_quantite: number; p_type: string }; Returns: undefined }
       debloquer_compte: { Args: { p_email: string; p_restaurant: string }; Returns: undefined }

@@ -11,6 +11,10 @@ export default function Equipe() {
   const [membres, setMembres] = useState<Membre[] | null>(null)
   const [aRetirer, setARetirer] = useState<Membre | null>(null)
   const [emailBloque, setEmailBloque] = useState("")
+  const [raz, setRaz] = useState(false)
+  const [confirmation, setConfirmation] = useState("")
+  const [remettreStock, setRemettreStock] = useState(true)
+  const [razBusy, setRazBusy] = useState(false)
   const [infos, setInfos] = useState({ nom: resto.nom, telephone: resto.telephone ?? "", adresse: resto.adresse ?? "" })
   const proprio = role === "proprietaire"
 
@@ -42,6 +46,15 @@ export default function Equipe() {
     const { error } = await supabase.rpc("debloquer_compte", { p_restaurant: resto.id, p_email: emailBloque })
     if (error) toast(messageErreur(error))
     else { toast("Si ce compte était bloqué, il peut ressaisir le code dès maintenant."); setEmailBloque("") }
+  }
+  async function remettreAZero(e: React.FormEvent) {
+    e.preventDefault()
+    setRazBusy(true)
+    const { data, error } = await supabase.rpc("reinitialiser_ventes", { p_restaurant: resto.id, p_confirmation: confirmation, p_remettre_stock: remettreStock })
+    setRazBusy(false)
+    if (error) { toast(messageErreur(error)); return }
+    setRaz(false); setConfirmation("")
+    toast(`${data ?? 0} ticket(s) supprimé(s). Les ventes repartent de zéro.`)
   }
   async function copier() {
     try { await navigator.clipboard.writeText(resto.code_invitation); toast("Code copié") } catch { toast("Sélectionnez le code pour le copier") }
@@ -98,6 +111,34 @@ export default function Equipe() {
           <label className="f">Adresse<input id="rAdr" value={infos.adresse} onChange={(e) => setInfos({ ...infos, adresse: e.target.value })} /></label>
           <button className="btn primary">Enregistrer</button>
         </form>
+      )}
+      {proprio && (
+        <div className="panel stack" style={{ gap: 10, borderColor: "var(--bad)" }}>
+          <h3 className="err">Remettre les ventes à zéro</h3>
+          <p className="muted">Supprime définitivement tous les tickets de {resto.nom} (ventes, reçus, historique). Le menu, le stock, les dépenses et l&apos;équipe sont conservés. Utile après une période d&apos;essai.</p>
+          <div><button className="btn danger" onClick={() => { setRaz(true); setConfirmation("") }}>Remettre les ventes à zéro…</button></div>
+        </div>
+      )}
+      {raz && (
+        <Dialog label="Remettre les ventes à zéro" onClose={() => setRaz(false)}>
+          <h2>Supprimer toutes les ventes ?</h2>
+          <p>Cette action est <b>définitive</b> : les tickets, les reçus en ligne des clients et les totaux du tableau de bord disparaissent. Pensez à exporter le mois en CSV avant si vous en avez besoin.</p>
+          <form className="stack" style={{ gap: 10 }} onSubmit={remettreAZero}>
+            <label className="row" style={{ gap: 8, alignItems: "flex-start" }}>
+              <input type="checkbox" checked={remettreStock} onChange={(e) => setRemettreStock(e.target.checked)} style={{ width: "auto", marginTop: 4 }} />
+              <span>Remettre en stock les ingrédients consommés par ces ventes (à décocher si le stock a déjà été recompté par inventaire)</span>
+            </label>
+            <label className="f">Pour confirmer, tapez le nom du restaurant : <b>{resto.nom}</b>
+              <input id="confirmRaz" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} autoComplete="off" autoFocus />
+            </label>
+            <div className="row">
+              <button type="button" className="btn" onClick={() => setRaz(false)}>Annuler</button>
+              <button className="btn primary" disabled={razBusy || confirmation.trim().toLowerCase() !== resto.nom.trim().toLowerCase()}>
+                {razBusy ? "Suppression…" : "Supprimer toutes les ventes"}
+              </button>
+            </div>
+          </form>
+        </Dialog>
       )}
       {aRetirer && (
         <Dialog label="Retirer le membre" onClose={() => setARetirer(null)}>
