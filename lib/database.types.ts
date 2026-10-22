@@ -72,7 +72,8 @@ export type Database = {
       creer_restaurant: { Args: { p_adresse?: string; p_nom: string; p_telephone?: string }; Returns: string }
       encaisser: { Args: { p_lignes: Json; p_mode: string; p_recu: number; p_restaurant: string }; Returns: { numero: number; total: number; vente_id: string }[] }
       mouvement_stock: { Args: { p_cout?: number; p_en_depense?: boolean; p_ingredient: string; p_mode?: string; p_note?: string; p_quantite: number; p_type: string }; Returns: undefined }
-      rejoindre_restaurant: { Args: { p_code: string }; Returns: string }
+      debloquer_compte: { Args: { p_email: string; p_restaurant: string }; Returns: undefined }
+      rejoindre_restaurant: { Args: { p_code: string }; Returns: string | null }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }

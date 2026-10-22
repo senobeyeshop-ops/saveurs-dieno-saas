@@ -24,7 +24,9 @@ export default function Bienvenue() {
     e.preventDefault(); setBusy(true); setMsg(null)
     const { data, error } = await createClient().rpc("rejoindre_restaurant", { p_code: code.trim() })
     setBusy(false)
-    if (error) setMsg(messageErreur(error)); else choisir(data)
+    if (error) setMsg(messageErreur(error))
+    else if (!data) setMsg("Code inconnu. Vérifiez les caractères donnés par le gérant. Après 10 erreurs, la saisie est bloquée 15 minutes.")
+    else choisir(data)
   }
 
   async function creer(e: React.FormEvent) {

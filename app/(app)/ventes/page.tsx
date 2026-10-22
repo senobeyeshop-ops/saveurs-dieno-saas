@@ -11,11 +11,22 @@ type VenteAvecLignes = Vente & { vente_lignes: VenteLigne[] }
 const classeMode = (m: string) => (m === "Wave" ? "m-wave" : m === "Orange Money" ? "m-om" : "m-especes")
 
 export default function Ventes() {
-  const { resto, supabase, toast, peutGerer } = useResto()
+  const { resto, supabase, toast, peutGerer, userId } = useResto()
   const [jour, setJour] = useState(aujourdHui())
   const [ventes, setVentes] = useState<VenteAvecLignes[] | null>(null)
   const [recu, setRecu] = useState<VenteAvecLignes | null>(null)
   const [aAnnuler, setAAnnuler] = useState<VenteAvecLignes | null>(null)
+  const [noms, setNoms] = useState<Record<string, string>>({})
+  const [filtre, setFiltre] = useState("")
+
+  useEffect(() => {
+    supabase.from("membres").select("user_id, nom_affiche").eq("restaurant_id", resto.id).then(({ data }) => {
+      const m: Record<string, string> = {}
+      for (const x of data ?? []) m[x.user_id] = x.user_id === userId ? "Vous" : (x.nom_affiche || `Membre ${x.user_id.slice(0, 6)}`)
+      setNoms(m)
+    })
+  }, [supabase, resto.id, userId])
+  const nomCaissier = (id: string | null) => (id ? noms[id] ?? "Ancien membre" : "—")
 
   const charger = useCallback(async () => {
     setVentes(null)
@@ -38,9 +49,9 @@ export default function Ventes() {
     const { data, error } = await supabase.from("ventes").select("*, vente_lignes(*)")
       .eq("restaurant_id", resto.id).gte("jour", debut).lt("jour", fin).order("created_at")
     if (error) { toast(messageErreur(error)); return }
-    const lignes = [["Date", "Heure", "Ticket", "Article", "Quantité", "Prix unitaire", "Montant", "Paiement", "Statut"]]
+    const lignes = [["Date", "Heure", "Ticket", "Caissier", "Article", "Quantité", "Prix unitaire", "Montant", "Paiement", "Statut"]]
     for (const v of (data as VenteAvecLignes[]) ?? []) for (const l of v.vente_lignes)
-      lignes.push([v.jour, heure(v.created_at), String(v.numero), l.nom, String(l.quantite), String(l.prix_unitaire), String(l.quantite * l.prix_unitaire), v.mode_paiement, v.annulee ? "Annulé" : "Validé"])
+      lignes.push([v.jour, heure(v.created_at), String(v.numero), nomCaissier(v.caissier_id), l.nom, String(l.quantite), String(l.prix_unitaire), String(l.quantite * l.prix_unitaire), v.mode_paiement, v.annulee ? "Annulé" : "Validé"])
     const csv = "﻿" + lignes.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(";")).join("\r\n")
     const a = document.createElement("a")
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
@@ -49,14 +60,21 @@ export default function Ventes() {
     URL.revokeObjectURL(a.href)
   }
 
-  const valides = (ventes ?? []).filter((v) => !v.annulee)
+  const visibles = (ventes ?? []).filter((v) => !filtre || v.caissier_id === filtre)
+  const valides = visibles.filter((v) => !v.annulee)
+  const parCaissier = new Map<string, VenteAvecLignes[]>()
+  for (const v of (ventes ?? []).filter((x) => !x.annulee)) {
+    const k = v.caissier_id ?? ""
+    parCaissier.set(k, [...(parCaissier.get(k) ?? []), v])
+  }
+  const somme = (l: VenteAvecLignes[], m?: string) => l.filter((v) => !m || v.mode_paiement === m).reduce((s, v) => s + v.total, 0)
   const ca = valides.reduce((s, v) => s + v.total, 0)
   const vers = (v: VenteAvecLignes): RecuData => ({ numero: v.numero, date: v.created_at, mode: v.mode_paiement, total: v.total, recu: v.montant_recu, annulee: v.annulee, lignes: v.vente_lignes })
 
   return (
     <div className="stack">
       <div className="row between">
-        <h2>Ventes du {jourLong(jour)}</h2>
+        <h2>{peutGerer ? "Ventes" : "Mes ventes"} du {jourLong(jour)}</h2>
         <div className="row">
           <button className="btn" onClick={() => setJour(decaler(jour, -1))} aria-label="Jour précédent">‹</button>
           <input id="jour" type="date" value={jour} max={aujourdHui()} onChange={(e) => e.target.value && setJour(e.target.value)} style={{ width: "auto" }} />
@@ -65,22 +83,50 @@ export default function Ventes() {
       </div>
       <div className="kpis">
         <div className="kpi"><h3>Chiffre d&apos;affaires</h3><div className="v">{fcfa(ca)}</div></div>
-        <div className="kpi"><h3>Tickets</h3><div className="v">{valides.length}{ventes && ventes.length > valides.length ? <small> · {ventes.length - valides.length} annulé(s)</small> : null}</div></div>
+        <div className="kpi"><h3>Tickets</h3><div className="v">{valides.length}{visibles.length > valides.length ? <small> · {visibles.length - valides.length} annulé(s)</small> : null}</div></div>
         {MODES.map((m) => <div className="kpi" key={m}><h3>{m}</h3><div className="v">{fcfa(valides.filter((v) => v.mode_paiement === m).reduce((s, v) => s + v.total, 0))}</div></div>)}
       </div>
+      {peutGerer && parCaissier.size > 0 && (
+        <div className="panel stack" style={{ gap: 10 }}>
+          <div className="row between">
+            <h3>Par caissier</h3>
+            <select aria-label="Filtrer par caissier" value={filtre} onChange={(e) => setFiltre(e.target.value)} style={{ width: "auto" }}>
+              <option value="">Tous les caissiers</option>
+              {[...parCaissier.keys()].map((k) => <option key={k} value={k}>{nomCaissier(k || null)}</option>)}
+            </select>
+          </div>
+          <div className="tbl">
+            <table>
+              <thead><tr><th>Caissier</th><th className="num">Tickets</th>{MODES.map((m) => <th key={m} className="num">{m}</th>)}<th className="num">Total</th></tr></thead>
+              <tbody>
+                {[...parCaissier.entries()].map(([k, l]) => (
+                  <tr key={k}>
+                    <td>{nomCaissier(k || null)}</td>
+                    <td className="num">{l.length}</td>
+                    {MODES.map((m) => <td key={m} className="num">{fcfa(somme(l, m))}</td>)}
+                    <td className="num"><b>{fcfa(somme(l))}</b></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted">Les espèces de chaque ligne sont ce que ce caissier doit remettre en fin de service. Les tickets annulés ne sont pas comptés.</p>
+        </div>
+      )}
       <div className="row">
         <button className="btn" onClick={exporter}>Exporter le mois en CSV</button>
         <span className="muted">Journal des ventes pour la comptabilité (s&apos;ouvre dans Excel).</span>
       </div>
-      {ventes === null ? <div className="empty">Chargement…</div> : ventes.length === 0 ? <div className="empty">Aucune vente enregistrée ce jour-là.</div> : (
+      {ventes === null ? <div className="empty">Chargement…</div> : visibles.length === 0 ? <div className="empty">Aucune vente enregistrée ce jour-là.</div> : (
         <div className="tbl">
           <table>
-            <thead><tr><th>Heure</th><th>N°</th><th>Articles</th><th>Paiement</th><th className="num">Total</th><th /></tr></thead>
+            <thead><tr><th>Heure</th><th>N°</th>{peutGerer && <th>Caissier</th>}<th>Articles</th><th>Paiement</th><th className="num">Total</th><th /></tr></thead>
             <tbody>
-              {ventes.map((v) => (
+              {visibles.map((v) => (
                 <tr key={v.id} className={v.annulee ? "cancel" : undefined}>
                   <td>{heure(v.created_at)}</td>
                   <td>{String(v.numero).padStart(3, "0")}</td>
+                  {peutGerer && <td>{nomCaissier(v.caissier_id)}</td>}
                   <td>{v.vente_lignes.map((l) => `${l.quantite}× ${l.nom}`).join(", ")}</td>
                   <td><span className={`pill ${classeMode(v.mode_paiement)}`}>{v.mode_paiement}</span></td>
                   <td className="num"><b>{fcfa(v.total)}</b></td>

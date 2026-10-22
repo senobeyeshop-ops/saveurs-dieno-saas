@@ -10,6 +10,7 @@ export default function Equipe() {
   const { resto, supabase, toast, role, userId, peutGerer } = useResto()
   const [membres, setMembres] = useState<Membre[] | null>(null)
   const [aRetirer, setARetirer] = useState<Membre | null>(null)
+  const [emailBloque, setEmailBloque] = useState("")
   const [infos, setInfos] = useState({ nom: resto.nom, telephone: resto.telephone ?? "", adresse: resto.adresse ?? "" })
   const proprio = role === "proprietaire"
 
@@ -35,6 +36,12 @@ export default function Equipe() {
     e.preventDefault()
     const { error } = await supabase.from("restaurants").update({ nom: infos.nom.trim(), telephone: infos.telephone.trim() || null, adresse: infos.adresse.trim() || null }).eq("id", resto.id)
     if (error) toast(messageErreur(error)); else toast("Informations enregistrées. Elles apparaîtront sur les reçus.")
+  }
+  async function debloquer(e: React.FormEvent) {
+    e.preventDefault()
+    const { error } = await supabase.rpc("debloquer_compte", { p_restaurant: resto.id, p_email: emailBloque })
+    if (error) toast(messageErreur(error))
+    else { toast("Si ce compte était bloqué, il peut ressaisir le code dès maintenant."); setEmailBloque("") }
   }
   async function copier() {
     try { await navigator.clipboard.writeText(resto.code_invitation); toast("Code copié") } catch { toast("Sélectionnez le code pour le copier") }
@@ -71,6 +78,16 @@ export default function Equipe() {
             </tbody>
           </table>
         </div>
+      )}
+      {proprio && (
+        <form className="panel stack" style={{ gap: 10 }} onSubmit={debloquer}>
+          <h3>Débloquer un compte</h3>
+          <p className="muted">Après 10 codes erronés, un compte est bloqué 15 minutes. Saisissez l&apos;e-mail de la personne pour la débloquer tout de suite.</p>
+          <div className="row">
+            <input id="emailBloque" type="email" value={emailBloque} onChange={(e) => setEmailBloque(e.target.value)} placeholder="e-mail du compte bloqué" required style={{ flex: 1, minWidth: 200 }} />
+            <button className="btn">Débloquer</button>
+          </div>
+        </form>
       )}
       {proprio && (
         <form className="panel form-grid" onSubmit={enregistrer}>
