@@ -1,0 +1,10 @@
+{
+  "name": "Saveurs Dieno · Caisse",
+  "short_name": "Dieno Caisse",
+  "start_url": "/caisse",
+  "display": "standalone",
+  "background_color": "#1b1838",
+  "theme_color": "#1b1838",
+  "lang": "fr",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
