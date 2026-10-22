@@ -3,16 +3,18 @@
 import { useCallback, useEffect, useState } from "react"
 import { useResto } from "@/components/Resto"
 import { Dialog } from "@/components/Dialog"
-import type { Vente, VenteLigne } from "@/lib/database.types"
-import { decaler, aujourdHui, heure, messageErreur } from "@/lib/format"
+import type { Commande, CommandeLigne, Vente, VenteLigne } from "@/lib/database.types"
+import { decaler, aujourdHui, heure, messageErreur, numCmd } from "@/lib/format"
 
 type Cmd = Vente & { vente_lignes: VenteLigne[] }
+type Web = Commande & { commande_lignes: CommandeLigne[] }
 const RETARD_MIN = 15
 
 export default function Cuisine() {
   const { resto, supabase, toast } = useResto()
   const [attente, setAttente] = useState<Cmd[] | null>(null)
   const [livrees, setLivrees] = useState<Cmd[]>([])
+  const [web, setWeb] = useState<Web[]>([])
   const [aSignaler, setASignaler] = useState<Cmd | null>(null)
   const [note, setNote] = useState("")
   const [busy, setBusy] = useState<string | null>(null)
@@ -20,12 +22,15 @@ export default function Cuisine() {
 
   const charger = useCallback(async () => {
     const depuis = decaler(aujourdHui(), -1)
-    const [a, l] = await Promise.all([
+    const [a, l, w] = await Promise.all([
       supabase.from("ventes").select("*, vente_lignes(*)").eq("restaurant_id", resto.id)
         .eq("statut", "en_attente").gte("jour", depuis).order("created_at"),
       supabase.from("ventes").select("*, vente_lignes(*)").eq("restaurant_id", resto.id)
         .eq("statut", "livre").eq("jour", aujourdHui()).order("livre_at", { ascending: false }).limit(6),
+      supabase.from("commandes").select("*, commande_lignes(*)").eq("restaurant_id", resto.id)
+        .in("statut", ["validee", "prete"]).gte("jour", depuis).order("valide_at"),
     ])
+    setWeb((w.data as Web[]) ?? [])
     if (a.error) toast(messageErreur(a.error))
     setAttente((a.data as Cmd[]) ?? [])
     setLivrees((l.data as Cmd[]) ?? [])
@@ -44,6 +49,13 @@ export default function Cuisine() {
     const { error } = await supabase.rpc("marquer_livre", { p_vente: c.id })
     setBusy(null)
     if (error) toast(messageErreur(error)); else { toast(`Commande ${String(c.numero).padStart(3, "0")} livrée`); charger() }
+  }
+
+  async function prete(c: Web) {
+    setBusy(c.id)
+    const { error } = await supabase.rpc("commande_prete", { p_commande: c.id })
+    setBusy(null)
+    if (error) toast(messageErreur(error)); else { toast(`${numCmd(c.numero)} prête : la caisse peut prévenir le client`); charger() }
   }
 
   async function signaler(e: React.FormEvent) {
@@ -84,6 +96,28 @@ export default function Cuisine() {
             )
           })}
         </div>
+      )}
+
+      {web.length > 0 && (
+        <>
+          <h2>Commandes en ligne ({web.filter((c) => c.statut === "validee").length} à préparer)</h2>
+          <div className="queue">
+            {web.map((c) => (
+              <div key={c.id} className="panel cmd web" style={c.statut === "prete" ? { opacity: 0.6 } : undefined}>
+                <div className="row between">
+                  <span className="num">{numCmd(c.numero)}</span>
+                  <span className="muted">{c.valide_at ? heure(c.valide_at) : heure(c.created_at)}</span>
+                </div>
+                <b>{c.nom_client} · à retirer au comptoir</b>
+                <ul>{c.commande_lignes.map((l) => <li key={l.id}>{l.quantite} × {l.nom}</li>)}</ul>
+                {c.note && <div className="flag">« {c.note} »</div>}
+                {c.statut === "validee"
+                  ? <button className="btn primary big" disabled={busy === c.id} onClick={() => prete(c)}>{busy === c.id ? "Enregistrement…" : "Prête"}</button>
+                  : <div className="muted">Prête{c.prete_at ? ` depuis ${heure(c.prete_at)}` : ""}, en attente du client</div>}
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {livrees.length > 0 && (

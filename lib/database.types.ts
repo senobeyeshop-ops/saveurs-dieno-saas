@@ -7,6 +7,18 @@ export type Database = {
   __InternalSupabase: { PostgrestVersion: "14.18" }
   public: {
     Tables: {
+      commandes: {
+        Row: { created_at: string; id: string; jeton: string; jour: string; motif_refus: string | null; nom_client: string; note: string | null; numero: number; prete_at: string | null; restaurant_id: string; retire_at: string | null; statut: string; telephone: string; total: number; valide_at: string | null; valide_par: string | null; vente_id: string | null }
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: Rel[]
+      }
+      commande_lignes: {
+        Row: { article_id: string | null; commande_id: string; id: string; nom: string; prix_unitaire: number; quantite: number; restaurant_id: string }
+        Insert: Record<string, never>
+        Update: Record<string, never>
+        Relationships: [{ foreignKeyName: "commande_lignes_commande_id_fkey"; columns: ["commande_id"]; isOneToOne: false; referencedRelation: "commandes"; referencedColumns: ["id"] }]
+      }
       articles: {
         Row: { actif: boolean; categorie: string; created_at: string; id: string; nom: string; ordre: number; prix: number; prix_max: number | null; prix_min: number | null; prix_variable: boolean; restaurant_id: string }
         Insert: { actif?: boolean; categorie?: string; created_at?: string; id?: string; nom: string; ordre?: number; prix: number; prix_max?: number | null; prix_min?: number | null; prix_variable?: boolean; restaurant_id: string }
@@ -44,9 +56,9 @@ export type Database = {
         Relationships: Rel[]
       }
       restaurants: {
-        Row: { adresse: string | null; code_invitation: string; code_proprietaire: string | null; created_at: string; email: string | null; id: string; nom: string; telephone: string | null }
+        Row: { adresse: string | null; code_invitation: string; code_proprietaire: string | null; created_at: string; email: string | null; id: string; nom: string; telephone: string | null; slug: string; commandes_ouvertes: boolean; message_commande: string | null }
         Insert: { adresse?: string | null; code_invitation?: string; code_proprietaire?: string | null; created_at?: string; email?: string | null; id?: string; nom: string; telephone?: string | null }
-        Update: { adresse?: string | null; code_invitation?: string; code_proprietaire?: string | null; created_at?: string; email?: string | null; id?: string; nom?: string; telephone?: string | null }
+        Update: { adresse?: string | null; code_invitation?: string; code_proprietaire?: string | null; created_at?: string; email?: string | null; id?: string; nom?: string; telephone?: string | null; commandes_ouvertes?: boolean; message_commande?: string | null }
         Relationships: Rel[]
       }
       vente_lignes: {
@@ -73,6 +85,13 @@ export type Database = {
       encaisser: { Args: { p_lignes: Json; p_mode: string; p_recu: number; p_restaurant: string; p_telephone?: string | null }; Returns: { jeton: string; numero: number; total: number; vente_id: string }[] }
       marquer_livre: { Args: { p_vente: string }; Returns: undefined }
       recu_public: { Args: { p_jeton: string }; Returns: Json }
+      menu_public: { Args: { p_slug: string }; Returns: Json }
+      passer_commande: { Args: { p_lignes: Json; p_nom: string; p_note?: string | null; p_slug: string; p_telephone: string }; Returns: string }
+      suivi_commande: { Args: { p_jeton: string }; Returns: Json }
+      valider_commande: { Args: { p_commande: string }; Returns: undefined }
+      refuser_commande: { Args: { p_commande: string; p_motif: string }; Returns: undefined }
+      commande_prete: { Args: { p_commande: string }; Returns: undefined }
+      encaisser_commande: { Args: { p_commande: string; p_mode: string; p_recu: number }; Returns: { jeton: string; numero: number; total: number; vente_id: string }[] }
       reinitialiser_ventes: { Args: { p_confirmation: string; p_remettre_stock?: boolean; p_restaurant: string }; Returns: number }
       signaler_probleme: { Args: { p_note: string; p_vente: string }; Returns: undefined }
       mouvement_stock: { Args: { p_cout?: number; p_en_depense?: boolean; p_ingredient: string; p_mode?: string; p_note?: string; p_quantite: number; p_type: string }; Returns: undefined }
@@ -93,4 +112,6 @@ export type VenteLigne = T["vente_lignes"]["Row"]
 export type Depense = T["depenses"]["Row"]
 export type Mouvement = T["mouvements_stock"]["Row"]
 export type Membre = T["membres"]["Row"]
+export type Commande = T["commandes"]["Row"]
+export type CommandeLigne = T["commande_lignes"]["Row"]
 export type Restaurant = Omit<T["restaurants"]["Row"], "code_proprietaire">

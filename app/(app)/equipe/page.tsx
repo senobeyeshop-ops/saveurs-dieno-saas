@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { useResto } from "@/components/Resto"
 import { Dialog } from "@/components/Dialog"
 import type { Membre } from "@/lib/database.types"
@@ -11,6 +12,12 @@ export default function Equipe() {
   const [membres, setMembres] = useState<Membre[] | null>(null)
   const [aRetirer, setARetirer] = useState<Membre | null>(null)
   const [emailBloque, setEmailBloque] = useState("")
+  const router = useRouter()
+  const [ouvert, setOuvert] = useState(resto.commandes_ouvertes)
+  const [messageCmd, setMessageCmd] = useState(resto.message_commande ?? "")
+  const [origine, setOrigine] = useState("")
+  useEffect(() => { setOrigine(window.location.origin) }, [])
+  const lienCommande = `${origine}/commander/${resto.slug}`
   const [raz, setRaz] = useState(false)
   const [confirmation, setConfirmation] = useState("")
   const [remettreStock, setRemettreStock] = useState(true)
@@ -56,6 +63,16 @@ export default function Equipe() {
     setRaz(false); setConfirmation("")
     toast(`${data ?? 0} ticket(s) supprimé(s). Les ventes repartent de zéro.`)
   }
+  async function reglerCommandes(ouvrir: boolean, message = messageCmd) {
+    const { error } = await supabase.from("restaurants").update({ commandes_ouvertes: ouvrir, message_commande: message.trim() || null }).eq("id", resto.id)
+    if (error) { toast(messageErreur(error)); return }
+    setOuvert(ouvrir)
+    toast(ouvrir ? "Commandes en ligne ouvertes" : "Commandes en ligne fermées")
+    router.refresh()
+  }
+  async function copierLien() {
+    try { await navigator.clipboard.writeText(lienCommande); toast("Lien copié") } catch { toast("Sélectionnez le lien pour le copier") }
+  }
   async function copier() {
     try { await navigator.clipboard.writeText(resto.code_invitation); toast("Code copié") } catch { toast("Sélectionnez le code pour le copier") }
   }
@@ -91,6 +108,30 @@ export default function Equipe() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {proprio && (
+        <div className="panel stack" style={{ gap: 10 }}>
+          <div className="row between">
+            <h3>Commande en ligne</h3>
+            <span className={`pill ${ouvert ? "s-livre" : "s-annule"}`}>{ouvert ? "Ouverte" : "Fermée"}</span>
+          </div>
+          <p className="muted">Vos clients commandent depuis ce lien, sans compte. Ils paient et retirent au comptoir. Chaque commande arrive en haut de la caisse et doit être validée avant d&apos;aller en cuisine.</p>
+          <div className="row">
+            <span className="code" style={{ fontSize: ".9rem", wordBreak: "break-all" }}>{lienCommande}</span>
+            <button className="btn" onClick={copierLien}>Copier</button>
+            <a className="btn wa" target="_blank" rel="noopener noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`Commandez chez ${resto.nom} en ligne, puis retirez et payez au comptoir : ${lienCommande}`)}`}>Partager sur WhatsApp</a>
+            <a className="btn ghost" href={`/commander/${resto.slug}`} target="_blank" rel="noopener noreferrer">Voir la page</a>
+          </div>
+          <label className="f">Message affiché aux clients (facultatif)
+            <input id="messageCmd" value={messageCmd} onChange={(e) => setMessageCmd(e.target.value)} maxLength={200} placeholder="ex. Commandes de 8 h à 22 h · Fermé le dimanche" />
+          </label>
+          <div className="row">
+            {ouvert
+              ? <button className="btn danger" onClick={() => reglerCommandes(false)}>Fermer les commandes en ligne</button>
+              : <button className="btn primary" onClick={() => reglerCommandes(true)}>Ouvrir les commandes en ligne</button>}
+            <button className="btn ghost" onClick={() => reglerCommandes(ouvert)}>Enregistrer le message</button>
+          </div>
         </div>
       )}
       {proprio && (

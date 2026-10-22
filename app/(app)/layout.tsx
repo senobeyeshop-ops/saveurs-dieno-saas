@@ -15,7 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const { data: restos } = await supabase
     .from("restaurants")
-    .select("id, nom, telephone, adresse, email, code_invitation, created_at")
+    .select("id, nom, telephone, adresse, email, code_invitation, created_at, slug, commandes_ouvertes, message_commande")
     .in("id", membres.map((m) => m.restaurant_id))
     .order("nom")
   if (!restos || restos.length === 0) redirect("/bienvenue")

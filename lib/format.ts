@@ -5,6 +5,10 @@ export const DEP_CATS = ["Matières premières", "Emballages", "Gaz", "Électric
 export const UNITES = ["pièce", "kg", "litre", "paquet", "plateau", "sachet", "bouteille", "pot"]
 export const ROLES: Record<string, string> = { proprietaire: "Propriétaire", gerant: "Gérant", caissier: "Caissier", cuisine: "Cuisine" }
 export const STATUTS: Record<string, string> = { en_attente: "En attente", livre: "Livré", annule: "Annulé" }
+export const STATUTS_CMD: Record<string, string> = {
+  nouvelle: "À valider", validee: "En préparation", prete: "Prête à retirer", retiree: "Retirée", refusee: "Refusée",
+}
+export const numCmd = (n: number) => "C-" + String(n).padStart(3, "0")
 
 /** Lien WhatsApp vers le numéro du client (numéros sénégalais à 9 chiffres complétés par 221). */
 export const lienWhatsApp = (telephone: string | null | undefined, texte: string) => {

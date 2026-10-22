@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useResto } from "@/components/Resto"
 import { Dialog } from "@/components/Dialog"
 import { Recu, type RecuData } from "@/components/Recu"
+import { CommandesEnLigne } from "@/components/CommandesEnLigne"
 import type { Article, Ingredient, Recette } from "@/lib/database.types"
 import { CATEGORIES, MODES, fcfa, lienWhatsApp, lireNombre, messageErreur, texteRecuWhatsApp, type Mode } from "@/lib/format"
 
@@ -106,6 +107,7 @@ export default function Caisse() {
   const montrer = cat === "Tous" ? cats : [cat]
   return (
     <div className="stack">
+      <CommandesEnLigne apresEncaissement={charger} />
       {alertes.length > 0 && (
         <div className="alert">
           <b>Stock bas</b>

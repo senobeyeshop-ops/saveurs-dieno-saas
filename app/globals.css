@@ -176,3 +176,8 @@ tr.cancel td { color: var(--muted); text-decoration: line-through }
 .public .card { background: var(--surface); border-radius: 18px; padding: 20px; width: min(420px, 100%); display: flex; flex-direction: column; gap: 14px }
 .etat { text-align: center; border-radius: 12px; padding: 12px; font-weight: 700; font-size: 1.1rem; border: 2px solid currentColor }
 .etat.s-en_attente { color: var(--warn) } .etat.s-livre { color: var(--ok) } .etat.s-annule { color: var(--bad) }
+.etat.s-nouvelle, .etat.s-validee { color: var(--warn) } .etat.s-prete, .etat.s-retiree { color: var(--ok) } .etat.s-refusee { color: var(--bad) }
+.pill.s-nouvelle { color: var(--bad) } .pill.s-validee { color: var(--warn) } .pill.s-prete { color: var(--ok) }
+.etapes { display: flex; justify-content: space-between; gap: 6px; font-size: .8rem; color: var(--muted) }
+.etapes span.fait { color: var(--ok); font-weight: 700 }
+.cmd.web { border-left-color: var(--wave) }
